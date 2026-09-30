@@ -1,53 +1,56 @@
 # Orderrapport
 
-Ett program som läser orderdata från en CSV-fil och skapar rapporter över
-försäljning och returer. Det är en förbättrad version av ett äldre skript.
-Rapporterna blir samma som förut, men koden är tydligare och har tester.
+Det här programmet läser en CSV-fil med ordrar och gör rapporter om
+försäljning och returer.
 
-Läs också `code_review.md` (granskning av originalkoden) och `reflection.md`.
+Jag har tagit ett gammalt skript och gjort om det så att koden blir tydligare.
+Rapporterna ska bli precis likadana som förut. Jag har delat upp koden i
+flera filer, lagt till logging och tester och gjort bättre felhantering.
 
-## Vad programmet skapar
+Mer om det finns i `code_review.md` och `reflection.md`.
 
-Fyra filer sparas i mappen `output/`:
+## Vad programmet gör:
 
-| Fil | Innehåll |
-|-----|----------|
-| `overview.csv` | Total försäljning, antal order och antal returer |
-| `sales_by_category.csv` | Försäljning och returer per produktkategori |
-| `sales_by_region.csv` | Försäljning och returer per region |
-| `returns_by_category.csv` | Returandel per produktkategori |
+Programmet sparar fyra filer i mappen `output`:
 
-Försäljning räknas som `quantity * unit_price * (1 - discount)`.
+- `overview.csv` - total försäljning, antal order och antal returer
+- `sales_by_category.csv` - försäljning och returer per produktkategori
+- `sales_by_region.csv` - försäljning och returer per region
+- `returns_by_category.csv` - hur stor andel som returneras per kategori
+
+Försäljning räknas så här: `quantity * unit_price * (1 - discount)`.
 
 ## Installera
 
-Du behöver Python 3.10 eller nyare.
+Du behöver Python 3.10 eller nyare. Skriv detta i terminalen, i projektmappen:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-Beroenden finns i `pyproject.toml`: `pandas` (programmet) och `pytest`
-(tester). Testat med pandas 2.3 och 3.0.
+På Windows aktiverar du miljön med `.venv\Scripts\activate`.
+
+Programmet behöver `pandas`. Testerna behöver `pytest`. Båda installeras av
+kommandot ovan. De står också i filen `pyproject.toml`.
 
 ## Köra programmet
-
-Kör från projektets huvudmapp:
 
 ```bash
 python -m order_report
 ```
 
-Du kan också välja fil och mapp själv:
+Då läser programmet `data/orders.csv` och sparar rapporterna i `output`.
+
+Vill du använda en annan fil eller mapp kan du skriva så här:
 
 ```bash
 python -m order_report --input min_fil.csv --output-dir rapporter
 ```
 
-Programmet skriver vad det gör i terminalen (logging). Om något är fel skriver
-det en tydlig förklaring och avslutas med kod 1.
+Programmet skriver i terminalen vad det gör. Om något går fel skriver det
+vad felet är och avslutas med kod 1.
 
 ## Köra testerna
 
@@ -55,30 +58,33 @@ det en tydlig förklaring och avslutas med kod 1.
 pytest
 ```
 
-Det finns 45 tester. Viktigast:
+Testerna kontrollerar bland annat:
 
-- Beräkningar av ordervärde, rabatt, summor och sortering.
-- Rensning av data (saknade värden, stora/små bokstäver, `Yes`/`ja`).
-- Felfall: saknad fil, saknad kolumn, tom data och orimliga värden.
-- Ett test som visar att rapporterna är likadana som från originalprogrammet.
+- att ordervärde, rabatt och summor räknas rätt
+- att datan rensas rätt, till exempel `" north "` blir `North`
+- att det blir fel när en kolumn saknas, filen är tom eller värden är
+  orimliga
+- att rapporterna blir likadana som från det gamla programmet
 
-## Hur datan hanteras
+## Vad händer med dålig data?
 
-| Problem i datan | Vad programmet gör |
-|-----------------|--------------------|
-| Filen finns inte eller är tom | Fel |
-| En kolumn saknas | Fel med namn på kolumnen |
-| Inga rader | Fel |
-| `quantity` eller `unit_price` är 0 eller mindre | Fel |
-| `discount` är utanför 0–1 | Fel |
-| Saknat antal | Blir 1 (varning i loggen) |
-| Saknat pris | Blir medianpriset (varning) |
-| Saknad eller ogiltig rabatt | Blir 0 (varning) |
-| Saknad region eller kategori | Blir `Unknown` (varning) |
-| Saknat värde i `returned` | Räknas som inte returnerad (varning) |
-| `" north "`, `"SOUTH"`, `"Yes"` | Rättas till |
+Programmet **stannar med ett fel** om:
 
-## Struktur
+- filen saknas eller är tom
+- en kolumn saknas
+- `quantity` eller `unit_price` är 0 eller mindre
+- `discount` är mindre än 0 eller större än 1
+
+Programmet **fortsätter men skriver en varning** om värden saknas. Då byts
+de ut på samma sätt som i det gamla programmet:
+
+- saknat antal blir 1
+- saknat pris blir medianpriset
+- saknad rabatt blir 0
+- saknad region eller kategori blir `Unknown`
+- saknat värde i `returned` räknas som att ordern inte är returnerad
+
+## Så här ser projektet ut
 
 ```
 order_report_project/
@@ -87,18 +93,18 @@ order_report_project/
 ├── reflection.md
 ├── pyproject.toml
 ├── data/orders.csv
-├── original/order_report.py     # gamla skriptet, bara för jämförelse
+├── original/order_report.py    (det gamla skriptet, bara för jämförelse)
 ├── src/order_report/
-│   ├── main.py                  # STARTPUNKT (main och run)
-│   ├── config.py                # inställningar (ReportConfig)
-│   ├── loading.py               # läser in datan
-│   ├── validation.py            # kontrollerar datan
-│   ├── processing.py            # rensar och räknar
-│   └── reporting.py             # sparar rapporterna
+│   ├── main.py                 (här startar programmet)
+│   ├── config.py               (inställningar)
+│   ├── loading.py              (läser in datan)
+│   ├── validation.py           (kontrollerar datan)
+│   ├── processing.py           (rensar och räknar)
+│   └── reporting.py            (sparar rapporterna)
 └── tests/
     ├── test_*.py
-    └── expected/                # rapporter från originalet, används som facit
+    └── expected/               (rapporter från det gamla programmet)
 ```
 
-Flödet i `main.run()`:
-läs in → kontrollera kolumner → rensa → kontrollera värden → räkna → spara.
+Programmet går igenom stegen i den här ordningen:
+läsa in, kontrollera kolumner, rensa, kontrollera värden, räkna, spara.
